@@ -34,7 +34,7 @@ spec:
       containers:
         - name: backend
           # YAHAN IMAGE TAG HAI — CI/CD yahan update karega
-          image: nginx:this-does-not-exist
+          image: nginx:1.25
           ports:
             - containerPort: 80
               name: http
