@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopkube-backend
+  namespace: shopkube
+  labels:
+    app: shopkube-backend
+    team: platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shopkube-backend
+  template:
+    metadata:
+      labels:
+        app: shopkube-backend
+        team: platform
+    spec:
+      serviceAccountName: shopkube-backend-sa
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z postgres-service 5432; do sleep 3; done
+        - name: wait-for-redis
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - until nc -z redis-service 6379; do sleep 3; done
+      containers:
+        - name: backend
+          # YAHAN IMAGE TAG HAI — CI/CD yahan update karega
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+              name: http
+          envFrom:
+            - configMapRef:
+                name: app-config
+          startupProbe:
+            httpGet: { path: /health, port: 80 }
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet: { path: /health, port: 80 }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: 80 }
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
